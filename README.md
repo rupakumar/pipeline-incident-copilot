@@ -7,6 +7,9 @@ names the root cause, proposes a safe fix, and runs it **only after a person app
 verifies the rerun and learns from it. Everything runs locally (Ollama `qwen3:4b`); Claude is an
 optional tier.
 
+**New here? Follow [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**: install, settings, the Databricks
+pipeline, the console, dashboards and your first incident, step by step.
+
 ## How an incident flows
 
 ```
@@ -36,8 +39,9 @@ copilot notify INC-0020           # re-send an incident's email
 copilot memories                  # what it has learned from verified fixes
 ```
 
-Email: set `GMAIL_SMTP_USER`, `GMAIL_APP_PASSWORD` (a Google app password) and `NOTIFY_EMAIL_TO` in
-`.env`. The Approve / Deny buttons open the console on the Mac that runs `copilot serve`; links are
+Email: enter the sender Gmail address, a Google app password and the default recipients in the console's
+**Settings** page (stored in the Keychain; `.env` works as a fallback). Each connection can name its own
+approvers (each gets their own signed links) and notify list. The Approve / Deny buttons open the console on the Mac that runs `copilot serve`; links are
 signed, single use, and expire after 24 hours; nothing changes until you confirm on the page.
 
 ## Task 1 — Diagnose with Claude Code (`/diagnose-incident`)
@@ -103,7 +107,8 @@ finds every job. Secrets (tokens, keys) go to the **macOS Keychain**; SQLite and
 |---|---|---|
 | Databricks | live | Jobs API runs, task error + trace, comparison with the last success, git diff, rerun with parameters |
 | Jenkins | live | builds, console log, failed stage / build step, parameters vs last success, rebuild with parameters |
-| Snowflake, AWS Glue, Azure Data Factory | next phases | form fields are listed; connectors follow (free tiers) |
+| Snowflake, AWS Glue, Azure Data Factory | adapter form ready | needs a paid account to test; connectors follow |
+| Airflow, dbt Cloud, BigQuery, GitHub Actions, Kafka Connect, Fivetran | in the gallery | coming |
 
 Reruns on a newly connected pipeline follow the strict rule: every changed parameter may only go back to its
 default or to the value of the last successful run (the Databricks job also has its own value rules).
@@ -120,8 +125,8 @@ A failure the copilot has already fixed can be fixed again without waiting for a
 switch on **Auto-apply known fixes** for a connection in its form (off by default; "minimum verified successes",
 default 2). A fix then runs on its own only when all hold: same failure pattern on the same pipeline as a remembered
 fix; the proposed fix is exactly that fix; it resolved at least the minimum number of incidents and never failed;
-calibrated confidence ≥ 0.85; first attempt for this incident; no other auto-fix on that pipeline in the last 6 h;
-the guardrail passes. History and Grafana show "approved automatically: known fix from INC-…", the email says
+calibrated confidence ≥ 0.85; first attempt for this incident; outside the pipeline's cooldown (set per connection,
+default 1 h, 0 = none); the guardrail passes. Tickets already waiting are re-checked every minute. History and Grafana show "approved automatically: known fix from INC-…", the email says
 **Auto-fixed**. Anything else waits for approval, with a note when it matches a known fix. A failed auto-fix marks
 the fix as failed, so it is never auto-applied again. `COPILOT_AUTO_APPLY=off` in `.env` switches it off everywhere.
 
@@ -183,10 +188,12 @@ The pipeline-health dashboard (Databricks data) stays on Grafana Cloud: `python 
 
 ## Setup
 
+Full walkthrough with prerequisites, what to change and troubleshooting: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
+
 ```bash
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,local-llm]"        # local-llm = Apple Silicon MLX (optional now)
-cp .env.example .env                     # Databricks, Langfuse, Gmail, Grafana keys — never commit
+cp .env.example .env                     # Databricks host + token (others optional) — never commit
 ollama pull qwen3:4b                     # the local model for root cause + resolution
 python -m scripts.download_sources       # error catalogs + LogHub logs
 python -m scripts.check_connections
