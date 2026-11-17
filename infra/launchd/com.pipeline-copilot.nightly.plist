@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Nightly at 02:30: scorecard, one improvement attempt (branch only, never merged), digest email.
+     If the Mac was asleep at 02:30, launchd runs it once when it wakes. The job checks AC power and memory. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.pipeline-copilot.nightly</string>
+  <key>ProgramArguments</key>
+  <array><string>__PROJECT__/.venv/bin/copilot</string><string>loop</string><string>nightly</string></array>
+  <key>WorkingDirectory</key><string>__PROJECT__</string>
+  <key>EnvironmentVariables</key><dict><key>PYTHONUNBUFFERED</key><string>1</string></dict>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>30</integer></dict>
+  <key>ProcessType</key><string>Background</string>
+  <key>LowPriorityIO</key><true/>
+  <key>Nice</key><integer>10</integer>
+  <key>StandardOutPath</key><string>__PROJECT__/data/runtime/logs/nightly.log</string>
+  <key>StandardErrorPath</key><string>__PROJECT__/data/runtime/logs/nightly.log</string>
+</dict>
+</plist>

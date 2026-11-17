@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The approval console (127.0.0.1:8787): Approve / Deny from email and Grafana, the connect form. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.pipeline-copilot.console</string>
+  <key>ProgramArguments</key>
+  <array><string>__PROJECT__/.venv/bin/copilot</string><string>serve</string></array>
+  <key>WorkingDirectory</key><string>__PROJECT__</string>
+  <key>EnvironmentVariables</key><dict><key>PYTHONUNBUFFERED</key><string>1</string></dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>ProcessType</key><string>Background</string>
+  <key>StandardOutPath</key><string>__PROJECT__/data/runtime/logs/console.log</string>
+  <key>StandardErrorPath</key><string>__PROJECT__/data/runtime/logs/console.log</string>
+</dict>
+</plist>

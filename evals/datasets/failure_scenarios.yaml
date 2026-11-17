@@ -1,0 +1,169 @@
+# Failure scenarios for the loghub_etl pipeline — the ground truth for evaluation.
+#
+# Each scenario is triggered purely through job parameters or upstream data (the pipeline
+# code never names a fault). `run_date` picks the day's drop in raw_logs/<source>/<date>/:
+# real days spark 2017-06-09, hdfs 2008-11-09..11; corrupted re-sends spark 2017-06-10,
+# hdfs 2008-11-12; never delivered spark 2017-06-11/12, hdfs 2008-11-13. `split` decides what the system may learn from:
+#   train → becomes support-ticket history / incident memory
+#   test  → used only to score the system; never seen in tickets or memory
+# `relevant_documents` are retrieval labels (parent_ids), set per failure class;
+# a scenario may add `extra_relevant_documents` when its error differs from its class.
+
+volume: /Volumes/workspace/pipeline_demo/raw_logs
+
+failure_classes:
+  missing_input:
+    relevant_documents: ["runbook:missing-input-data", "spark:PATH_NOT_FOUND", "code:bronze_ingest", "architecture:loghub_etl#sources-and-landing"]
+  schema_change:
+    relevant_documents: ["runbook:schema-change", "delta:DELTA_METADATA_MISMATCH", "code:silver_parse", "architecture:loghub_etl#tables"]
+  permissions:
+    relevant_documents: ["runbook:access-and-permissions", "code:gold_aggregate", "architecture:loghub_etl#access-and-ownership", "databricks:UNAUTHORIZED_ACCESS"]
+  data_quality:
+    relevant_documents: ["runbook:data-quality-breach", "code:quality_checks", "code:silver_parse", "spark:CANNOT_PARSE_TIMESTAMP", "architecture:loghub_etl#data-quality-gate"]
+  resource_exhaustion:
+    relevant_documents: ["runbook:resource-exhaustion", "code:gold_aggregate", "architecture:loghub_etl#compute"]
+
+baselines:  # successful runs: create tables and give "last successful run" evidence
+  - {id: ok-spark, params: {source: spark, run_date: "2017-06-09"}}
+  - {id: ok-hdfs, params: {source: hdfs, run_date: "2008-11-10"}}
+  - {id: ok-spark-incremental, params: {source: spark, run_date: "2017-06-09", silver_write_mode: append}}
+
+scenarios:
+  # --- missing input: the expected file never arrived or the path is wrong
+  - id: mi-01
+    failure_class: missing_input
+    split: train
+    params: {source: spark, run_date: "2017-06-11"}
+    root_cause: The 2017-06-11 Spark log partition was never delivered to the landing volume.
+    fix: Confirm the upstream delivery, then rerun with the correct date once the file lands.
+  - id: mi-02
+    failure_class: missing_input
+    split: train
+    params: {source: hdfs, run_date: "2008-11-13"}
+    root_cause: The 2008-11-13 HDFS log drop never arrived in the landing volume.
+    fix: Check the upstream export for that date; rerun after it lands or point to the correct partition.
+  - id: mi-03
+    failure_class: missing_input
+    split: train
+    params: {source: spark, run_date: "2017-06-09", input_path: "{volume}/spark/2017-06-09/Spark_2k.log.gz"}
+    root_cause: The job reads a compressed file name (.gz) but the landing file is uncompressed.
+    fix: Correct input_path to the delivered file name (Spark_2k.log).
+  - id: mi-04
+    failure_class: missing_input
+    split: test
+    extra_relevant_documents: ["databricks:UC_VOLUME_NOT_FOUND"]  # fails with a different code than its class
+    params: {source: hdfs, run_date: "2008-11-10", input_path: "/Volumes/workspace/pipeline_demo/raw_logs_v2/hdfs/2008-11-10/HDFS_2k.log"}
+    root_cause: input_path points to a volume (raw_logs_v2) that does not exist.
+    fix: Point input_path back to the raw_logs volume.
+  - id: mi-05
+    failure_class: missing_input
+    split: test
+    params: {source: spark, run_date: "2017-06-12"}
+    root_cause: The 2017-06-12 Spark log partition was never delivered.
+    fix: Confirm upstream delivery and rerun once the file is present.
+
+  # --- schema change: incremental load + new enrichment without schema evolution
+  - id: sc-01
+    failure_class: schema_change
+    split: train
+    params: {source: spark, run_date: "2017-06-09", silver_write_mode: append, enrich_columns: host_id}
+    root_cause: A new host_id enrichment column was appended to the existing silver table without schema evolution.
+    fix: Enable schema evolution (mergeSchema) for the incremental write, or ALTER TABLE to add the column first.
+  - id: sc-02
+    failure_class: schema_change
+    split: train
+    params: {source: hdfs, run_date: "2008-11-10", silver_write_mode: append, enrich_columns: "host_id,region"}
+    root_cause: New host_id and region columns were appended to the HDFS silver table without schema evolution.
+    fix: Add the columns with ALTER TABLE or enable mergeSchema, then rerun.
+  - id: sc-03
+    failure_class: schema_change
+    split: train
+    params: {source: spark, run_date: "2017-06-09", silver_write_mode: append, enrich_columns: cluster}
+    root_cause: A new cluster column was appended to the silver table, whose schema does not include it.
+    fix: Evolve the silver schema (mergeSchema or ALTER TABLE ADD COLUMN) before the incremental load.
+  # Note: a level type change (level_encoding: numeric) does NOT fail — Delta silently casts the
+  # integers to strings on append (observed 2026-10-03). Silent corruption, not a job failure.
+  - id: sc-04
+    failure_class: schema_change
+    split: test
+    params: {source: spark, run_date: "2017-06-09", silver_write_mode: append, enrich_columns: "host_id,cluster"}
+    root_cause: New host_id and cluster columns were appended to the Spark silver table without schema evolution.
+    fix: Add both columns to the silver table (ALTER TABLE or mergeSchema) before the incremental load.
+  - id: sc-05
+    failure_class: schema_change
+    split: test
+    params: {source: hdfs, run_date: "2008-11-10", silver_write_mode: append, enrich_columns: "region,cluster"}
+    root_cause: New region and cluster columns were appended to the HDFS silver table without schema evolution.
+    fix: Enable mergeSchema or add the columns to the table before appending.
+
+  # --- permissions: gold output points to a catalog the job cannot write to
+  - id: pe-01
+    failure_class: permissions
+    split: train
+    params: {source: spark, run_date: "2017-06-09", gold_table: samples.nyctaxi.loghub_gold_hourly}
+    root_cause: gold_table points to the read-only samples catalog; the job has no CREATE TABLE privilege there.
+    fix: Point gold_table back to workspace.pipeline_demo, or grant CREATE TABLE on the target schema.
+  - id: pe-02
+    failure_class: permissions
+    split: train
+    params: {source: hdfs, run_date: "2008-11-10", gold_table: samples.tpch.loghub_gold_hourly}
+    root_cause: The gold output targets samples.tpch, where the job identity lacks write privileges.
+    fix: Write to a schema the job owns or request CREATE TABLE on the target.
+  - id: pe-03
+    failure_class: permissions
+    split: test
+    params: {source: spark, run_date: "2017-06-09", gold_table: samples.bakehouse.hourly_events}
+    root_cause: The gold output targets samples.bakehouse, a read-only catalog for this job.
+    fix: Restore gold_table to the pipeline's own schema.
+  - id: pe-04
+    failure_class: permissions
+    split: test
+    params: {source: hdfs, run_date: "2008-11-10", gold_table: samples.accuweather.loghub_gold}
+    root_cause: The gold table is configured in samples.accuweather, where the job cannot create tables.
+    fix: Use workspace.pipeline_demo for gold, or get CREATE TABLE granted.
+
+  # --- data quality: timestamps fail to parse → null event_time breaches the 5% gate
+  - id: dq-01
+    failure_class: data_quality
+    split: train
+    params: {source: spark, run_date: "2017-06-09", timestamp_format: "MM/dd/yy HH:mm:ss"}
+    root_cause: timestamp_format was set to MM/dd/yy, which does not match the Spark log format yy/MM/dd.
+    fix: Remove the timestamp_format override or set it to yy/MM/dd HH:mm:ss.
+  - id: dq-02
+    failure_class: data_quality
+    split: train
+    params: {source: hdfs, run_date: "2008-11-10", timestamp_format: "yyyyMMdd HHmmss"}
+    root_cause: timestamp_format expects a 4-digit year but HDFS logs use yyMMdd HHmmss.
+    fix: Use yyMMdd HHmmss (the default) for HDFS logs.
+  - id: dq-03
+    failure_class: data_quality
+    split: train
+    params: {source: spark, run_date: "2017-06-10"}
+    root_cause: The 2017-06-10 upstream delivery contains malformed log lines with unparseable timestamps.
+    fix: Quarantine the bad delivery and ask the upstream team to resend the partition.
+  - id: dq-04
+    failure_class: data_quality
+    split: test
+    params: {source: hdfs, run_date: "2008-11-12"}
+    root_cause: The 2008-11-12 HDFS delivery has corrupted timestamps in many lines.
+    fix: Quarantine the file and request a clean resend from upstream.
+  - id: dq-05
+    failure_class: data_quality
+    split: test
+    params: {source: spark, run_date: "2017-06-09", timestamp_format: "yyyy-MM-dd HH:mm:ss"}
+    root_cause: timestamp_format was changed to an ISO pattern that does not match Spark's yy/MM/dd logs.
+    fix: Revert timestamp_format to yy/MM/dd HH:mm:ss.
+
+  # --- resource exhaustion: a huge debug sample is collected to the driver (each run ~6 min)
+  - id: re-01
+    failure_class: resource_exhaustion
+    split: train
+    params: {source: spark, run_date: "2017-06-09", debug_sample_rows: "500000000"}
+    root_cause: debug_sample_rows=500M collects a huge sample to the driver, which runs out of memory.
+    fix: Set debug_sample_rows to 0 (or a small number) and inspect samples with limit()/display instead of collect().
+  - id: re-02
+    failure_class: resource_exhaustion
+    split: test
+    params: {source: hdfs, run_date: "2008-11-10", debug_sample_rows: "400000000"}
+    root_cause: Collecting a 400M-row debug sample to the driver exhausted driver memory.
+    fix: Disable the debug sample or cap it to a few thousand rows.

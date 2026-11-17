@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "incidents": 9,
+    "errors": 0,
+    "class_ok": 1.0,
+    "fact_ok": 1.0,
+    "action_ok": 1.0,
+    "all_ok": 1.0,
+    "context_recall": 0.917,
+    "context_precision": 0.917,
+    "faithfulness": 1.0,
+    "brier_model": 0.0025,
+    "brier_calibrated": 0.0099,
+    "ece_model": 0.05,
+    "ece_calibrated": 0.07,
+    "escalated": 2,
+    "memory_cited_incidents": 0,
+    "mean_seconds": 16.811,
+    "memory": "off"
+  }
+}

@@ -1,0 +1,1 @@
+"""The `copilot` command line."""

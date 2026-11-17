@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Five-Minute Demo Script</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{color-scheme:light;
+--bg:#EEF2F1;--card:#FBFCFB;--ink:#14232B;--muted:#4A5961;--line:#CFD9D7;
+--accent:#A85A12;--sayBg:#FFF4E2;--code:#E2EAE8;--ok:#2F7D74;--okBg:#E4F1EE}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+--bg:#0E1A20;--card:#13252D;--ink:#E8EEEC;--muted:#A9BCB9;--line:#2A4049;
+--accent:#F2A33A;--sayBg:#1E3038;--code:#1A2E36;--ok:#4FB3A9;--okBg:#15302E}}
+:root[data-theme="dark"]{color-scheme:dark;
+--bg:#0E1A20;--card:#13252D;--ink:#E8EEEC;--muted:#A9BCB9;--line:#2A4049;
+--accent:#F2A33A;--sayBg:#1E3038;--code:#1A2E36;--ok:#4FB3A9;--okBg:#15302E}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.55 'IBM Plex Sans','Helvetica Neue',Arial,sans-serif}
+.wrap{max-width:680px;margin:0 auto;padding-inline:16px;padding-block:12px 72px;display:flex;flex-direction:column;gap:22px}
+h1{font-family:'Archivo',Arial,sans-serif;font-weight:800;font-size:clamp(30px,8vw,40px);line-height:1.05;margin:0;text-wrap:balance}
+h2{font-family:'Archivo',Arial,sans-serif;font-weight:800;font-size:23px;line-height:1.2;margin:0;text-wrap:balance}
+p{margin:0}
+.eyebrow,.label,.t,.num{font-family:'JetBrains Mono',Menlo,monospace}
+.eyebrow{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.lede{color:var(--muted)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
+margin-inline:-16px;padding:8px 16px;display:flex;gap:6px;overflow-x:auto;white-space:nowrap}
+nav a{font-family:'JetBrains Mono',Menlo,monospace;font-size:14px;color:var(--ink);text-decoration:none;background:var(--card);
+border:1px solid var(--line);border-radius:8px;padding:6px 10px;flex:none}
+nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;scroll-margin-top:60px}
+.head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.t{font-weight:600;font-size:15px;color:var(--accent);font-variant-numeric:tabular-nums}
+.show{font-size:16px;color:var(--muted)}
+.show b{color:var(--ink)}
+.say{background:var(--sayBg);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:19px;line-height:1.6}
+.label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.files{display:flex;flex-direction:column;gap:6px;font-size:15px}
+code{font-family:'JetBrains Mono',Menlo,monospace;font-size:13.5px;background:var(--code);border-radius:5px;padding:1px 5px;overflow-wrap:anywhere}
+.new{background:var(--okBg);border-left:3px solid var(--ok);border-radius:8px;padding:10px 12px;font-size:16px}
+.new b{color:var(--ok)}
+ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.bar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.bar span{height:6px;border-radius:3px;background:var(--accent);opacity:.35}
+.bar span.on{opacity:1}
+.prep li{font-size:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:10px;padding-top:8px">
+<p class="eyebrow">Pipeline Incident Copilot · 5-minute video</p>
+<h1>What to show and what to say</h1>
+<p class="lede">Read the orange boxes out loud. Grey lines tell you what to put on screen. "Files" is where it lives in the code, if someone asks. Six parts, about 50 seconds each.</p>
+</header>
+
+<nav aria-label="Parts">
+<a href="#prep">Prep</a><a href="#p1">1 Intro</a><a href="#p2">2 How</a><a href="#p3">3 Live</a><a href="#p4">4 Learn</a><a href="#p5">5 Skill</a><a href="#p6">6 Loop</a><a href="#end">End</a>
+</nav>
+
+<section class="card" id="prep">
+<div class="head"><h2>Before you record</h2><span class="t">5 min, off camera</span></div>
+<ul class="prep">
+<li>Check memory: <code>memory_pressure | tail -1</code> (need 45% or more).</li>
+<li>Check services: <code>.venv/bin/python -m scripts.launchd_services status</code>, watcher and console must say <b>running</b>.</li>
+<li>Grafana running: <code>.venv/bin/python -m scripts.local_grafana</code> in its own terminal.</li>
+<li>Open tabs in this order:
+ <ul>
+ <li>the slides</li>
+ <li>Grafana Incident Command: <code>127.0.0.1:3000/d/copilot-incident-desk</code></li>
+ <li>INC-0039 detail: <code>127.0.0.1:3000/d/copilot-ticket-detail?var-incident=INC-0039</code></li>
+ <li>Console Connections: <code>127.0.0.1:8787/connections</code></li>
+ <li>Console Knowledge: <code>127.0.0.1:8787/knowledge</code></li>
+ <li>Grafana Self-improvement: <code>127.0.0.1:3000/d/copilot-self-improvement</code></li>
+ <li>Gmail with the INC-0039 "auto-fixed" email and the digest email open</li>
+ </ul></li>
+<li>The deck has <b>5 slides</b>: cover, flow, architecture, results, close. Everything else is shown live.</li>
+<li>Do not start a live failure: it takes 6 minutes. Show INC-0039 from today. It is real.</li>
+</ul>
+</section>
+
+<section class="card" id="p1">
+<div class="bar" aria-hidden="true"><span class="on"></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="head"><h2>1 · Intro</h2><span class="t">0:00 – 0:45</span></div>
+<p class="show"><b>Slide 1</b> (cover).</p>
+<div class="say">
+<p>Hi, I'm [name]. When a data pipeline fails at night, an engineer has to read long logs, compare with yesterday's run, search old tickets and runbooks, guess a fix and rerun the job.</p>
+<p>I built the Pipeline Incident Copilot. It does this investigation like an experienced on-call engineer. It finds the cause, proposes a safe fix, and runs it only after a person approves, or when the exact same fix has already worked before.</p>
+<p>It works with real Databricks and Jenkins pipelines today.</p>
+</div>
+<div class="files"><span class="label">Files</span><span>Whole project: <code>src/pipeline_incident_copilot/</code></span></div>
+</section>
+
+<section class="card" id="p2">
+<div class="bar" aria-hidden="true"><span class="on"></span><span class="on"></span><span></span><span></span><span></span><span></span></div>
+<div class="head"><h2>2 · How it works</h2><span class="t">0:45 – 1:35</span></div>
+<p class="show"><b>Slide 2</b> (the flow), then <b>slide 3</b> (architecture), then <b>slide 4</b> (results).</p>
+<div class="say">
+<p>A watcher checks the pipelines every minute. When a run fails, it opens a ticket and collects evidence: the error, what changed since the last good run, and the code changes.</p>
+<p>Then a team of AI agents built with LangGraph takes over. They classify the failure, search our runbooks and past incidents, name the root cause and propose one rerun.</p>
+<p>The architecture has four layers: the platforms, detection, the agents, and control. Each one can be swapped. The AI model runs locally on this laptop.</p>
+<p>We tested it on 21 real failures. It found the right cause and the right fix in all 21. No AI grades the AI; every score is checked against the known answer.</p>
+<p>Safety is in the code, not in the prompt. A fix can only undo what changed. Low confidence goes to a person.</p>
+</div>
+<div class="new"><b>On slide 4:</b> point at the three <b>21/21</b> numbers. That is the whole test set, all correct.</div>
+<div class="files"><span class="label">Files</span>
+<span>Watcher: <code>detection/failure_watcher.py</code></span>
+<span>Agents graph: <code>workflow/graph.py</code>, <code>agents/</code></span>
+<span>Safety rule: <code>guardrails/action/safe_actions.py</code></span>
+<span>Confidence: <code>learning/confidence_calibrator.py</code></span>
+<span>Test: <code>evals/runners/diagnosis_eval.py</code></span></div>
+</section>
+
+<section class="card" id="p3">
+<div class="bar" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div>
+<div class="head"><h2>3 · Live: connect a platform</h2><span class="t">1:35 – 2:25</span></div>
+<p class="show">Switch to the <b>Console → Connections</b> tab. Hover a tile, click <b>Databricks → Edit</b>, scroll slowly through the five steps. Then open the <b>Knowledge</b> tab.</p>
+<div class="say">
+<p>This is the copilot's console. Here we connect a platform. Databricks and Jenkins are live. Snowflake, AWS Glue and Azure have their forms ready; they only need a paid account.</p>
+<p>In the form we give the workspace and the token. We test the connection, pick the jobs to watch, name the approvers who get the email, and switch auto-fix on or off. Secrets go to the macOS Keychain, not to a file.</p>
+<p>The Live switch turns watching on or off.</p>
+<p>On the Knowledge page a company uploads its own documents, like architecture docs and runbooks. They go straight into the search index, so the copilot uses them as evidence when it fixes a ticket.</p>
+</div>
+<div class="new"><b>Built this week:</b> the connect gallery and form, Settings page (email moved out of <code>.env</code>), Knowledge upload.</div>
+<div class="files"><span class="label">Files</span>
+<span>Form: <code>interface/connections_page.py</code>, <code>interface/console_ui.py</code></span>
+<span>Platforms list: <code>connectors/catalog.py</code></span>
+<span>Settings + Keychain: <code>security/app_settings.py</code>, <code>interface/settings_page.py</code></span>
+<span>Upload + index: <code>rag/ingestion/knowledge_library.py</code>, <code>interface/knowledge_page.py</code></span></div>
+</section>
+
+<section class="card" id="p4">
+<div class="bar" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></div>
+<div class="head"><h2>4 · Live: a real auto-fix</h2><span class="t">2:25 – 3:20</span></div>
+<p class="show">Open <b>Grafana → INC-0039</b>. Point at the stages, the confidence (98%), the "auto · known fix" line. Then show the <b>Gmail "auto-fixed" email</b>.</p>
+<div class="say">
+<p>This happened this morning on Databricks. A job ran out of memory because someone set a debug setting to 400 million rows.</p>
+<p>The copilot found the cause with 98% confidence. It knew this exact fix had worked four times before and never failed. So it fixed it without waiting for a person, checked that the rerun passed, and sent this email.</p>
+<p>Every fix that works becomes a memory, so next time it is faster. A fix that fails is not trusted again.</p>
+<p>Auto-fix has strict rules: same failure, same pipeline, same fix, proven at least twice, high confidence, and the owner must switch it on.</p>
+</div>
+<div class="new"><b>Built this week:</b> the cooldown is now a setting on each connection (default 1 hour). Tickets that are waiting get re-checked and auto-fixed when the rules pass. Two approvers can never approve the same ticket twice.</div>
+<div class="files"><span class="label">Files</span>
+<span>Auto-fix rules: <code>learning/auto_approval.py</code></span>
+<span>Memory: <code>learning/incident_memory.py</code></span>
+<span>Email with confidence: <code>notifications/html_templates.py</code>, <code>email_notifier.py</code></span>
+<span>Dashboard: <code>scripts/build_local_dashboards.py</code></span></div>
+</section>
+
+<section class="card" id="p5">
+<div class="bar" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+<div class="head"><h2>5 · Task 1: Claude Code skill</h2><span class="t">3:20 – 4:00</span></div>
+<p class="show">No slide. In VS Code, open the <b>.claude/agents</b> folder (five files) and <b>.claude/skills/diagnose-incident/SKILL.md</b>. Do not run it live, it takes 3–5 minutes.</p>
+<div class="say">
+<p>The same investigation also runs inside Claude Code with one command: <i>diagnose incident</i>.</p>
+<p>Five subagents work on it. Three run in parallel: triage, log analysis and knowledge search. Then one names the root cause and one plans the fix.</p>
+<p>Each agent can only use its own read-only commands. A hook checks every call and blocks anything else. The skill can only ask for approval; it can never run a fix itself.</p>
+<p>We also tested a hidden instruction inside an error log. The agents did not follow it, flagged it and sent it to a person.</p>
+</div>
+<div class="files"><span class="label">Files</span>
+<span>Skill: <code>.claude/skills/diagnose-incident/SKILL.md</code></span>
+<span>Subagents: <code>.claude/agents/</code> (5 files)</span>
+<span>Hook rules: <code>guardrails/agent/tool_policy.py</code></span>
+<span>Skill test: <code>evals/runners/claude_skill_eval.py</code></span></div>
+</section>
+
+<section class="card" id="p6">
+<div class="bar" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+<div class="head"><h2>6 · Task 2: it improves itself</h2><span class="t">4:00 – 4:40</span></div>
+<p class="show">No slide. <b>Grafana → Self-improvement</b>, then the <b>digest email</b> in Gmail.</p>
+<div class="say">
+<p>Every night at 2:30 the copilot tests itself on real failure scenarios. Then it tries one small change to its own settings and tests again.</p>
+<p>It keeps the change only if nothing gets worse and the score really goes up. If it is better, it goes to a git branch for an engineer to review. It never changes production on its own.</p>
+<p>Here you can see its decisions. Today it tried two changes, saw no gain, and rejected both. That is correct: it does not ship changes it cannot prove.</p>
+<p>Every morning it emails a short report: new tickets, fixed tickets, scores and decisions.</p>
+</div>
+<div class="files"><span class="label">Files</span>
+<span>Loop: <code>improvement/nightly.py</code>, <code>proposals.py</code>, <code>validator.py</code>, <code>publisher.py</code></span>
+<span>What it may change: <code>config/tunables.yaml</code></span>
+<span>Report email: <code>notifications/digest.py</code></span>
+<span>Schedule: <code>infra/launchd/</code></span></div>
+</section>
+
+<section class="card" id="end">
+<div class="head"><h2>Close</h2><span class="t">4:40 – 5:00</span></div>
+<p class="show"><b>Slide 5</b> (close).</p>
+<div class="say">
+<p>So, it investigates like your best on-call engineer, in seconds. It asks before it changes anything, unless the fix is already proven. And it gets better every night.</p>
+<p>I'd like to try it on one of your pipelines for 30 days. Thank you.</p>
+</div>
+</section>
+
+<section class="card">
+<div class="head"><h2>If you run short of time</h2></div>
+<ul>
+<li>Cut part 5 (skill) to one sentence: "The same agents also run as a Claude Code skill, with each agent locked to read-only commands."</li>
+<li>In part 3, skip the Knowledge page.</li>
+<li>Never cut part 4: the real auto-fix is the strongest moment.</li>
+</ul>
+</section>
+
+<section class="card">
+<div class="head"><h2>Quick answers if asked</h2></div>
+<ul>
+<li><b>Does data leave the company?</b> No. The AI model runs on this laptop (Ollama). Claude can be switched on per step if wanted.</li>
+<li><b>What if the fix is wrong?</b> It can only undo a change. If the rerun fails, it diagnoses once more and asks a person again.</li>
+<li><b>How long to add our platform?</b> One connector class with three methods, plus its form.</li>
+<li><b>What does it cost?</b> Local model: nothing per ticket. The Claude Code skill used about $1–1.50 of usage per ticket.</li>
+</ul>
+</section>
+
+</div>
+</body>
+</html>

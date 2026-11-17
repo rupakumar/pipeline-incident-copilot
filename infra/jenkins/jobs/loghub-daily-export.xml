@@ -1,0 +1,77 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <description>Daily export of LogHub logs: check the delivered file, check its size, write log-level counts.</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>SOURCE</name>
+          <description>LogHub source: spark or hdfs</description>
+          <defaultValue>spark</defaultValue>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>INPUT_FILE</name>
+          <description>Delivered file to export (empty: the standard delivery for SOURCE)</description>
+          <defaultValue></defaultValue>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>MIN_ROWS</name>
+          <description>Smallest delivery that counts as complete</description>
+          <defaultValue>1000</defaultValue>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>OUTPUT_DIR</name>
+          <description>Where the export is written</description>
+          <defaultValue>/var/jenkins_home/exports</defaultValue>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command><![CDATA[#!/bin/bash
+set -euo pipefail
+case "$SOURCE" in
+  spark) standard=/data/loghub/Spark_2k.log ;;
+  hdfs)  standard=/data/loghub/HDFS_2k.log ;;
+  *) echo "ERROR: unknown SOURCE '$SOURCE' (expected spark or hdfs)"; exit 2 ;;
+esac
+input="${INPUT_FILE:-$standard}"
+echo "[export] source=$SOURCE input=$input min_rows=$MIN_ROWS"
+if [ ! -f "$input" ]; then
+  echo "ERROR: input file not found: $input (No such file or directory)"
+  echo "[export] files in $(dirname "$input"):"
+  ls -1 "$(dirname "$input")" 2>&1 | head -20 || true
+  exit 2
+fi
+rows=$(wc -l < "$input" | tr -d ' ')
+echo "[export] read $rows rows"
+if [ "$rows" -lt "$MIN_ROWS" ]; then
+  echo "ERROR: DATA_QUALITY_FAILED: min_row_count expected >= $MIN_ROWS, got $rows"
+  exit 3
+fi
+mkdir -p "$OUTPUT_DIR"
+out="$OUTPUT_DIR/${SOURCE}_levels.tsv"
+for level in INFO WARN ERROR FATAL; do
+  printf '%s\t%s\n' "$level" "$(grep -c " $level " "$input" || true)"
+done > "$out"
+echo "[export] wrote $out"
+cat "$out"
+]]></command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>

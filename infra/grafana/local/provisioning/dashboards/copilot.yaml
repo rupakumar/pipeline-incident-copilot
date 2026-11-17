@@ -1,0 +1,12 @@
+# Dashboards as code: rendered from infra/grafana/local/dashboards/ into data/runtime/grafana/dashboards/
+# by scripts/local_grafana.py. Edit the files in infra/, not in Grafana (UI changes are not saved).
+apiVersion: 1
+providers:
+  - name: pipeline-incident-copilot
+    folder: Pipeline Incident Copilot
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 10
+    options:
+      path: $COPILOT_GRAFANA_DATA/dashboards

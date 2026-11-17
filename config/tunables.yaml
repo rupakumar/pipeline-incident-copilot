@@ -1,0 +1,11 @@
+# Values the self-improvement loop (Task 2) may change, one at a time, on a branch a person merges.
+# Bounds and steps are in src/pipeline_incident_copilot/tuning/tunables.py (SEARCH_SPACE); anything outside them
+# is refused. Safety settings (guardrails, auto-apply, approvals) are NOT here and can never be tuned.
+routing_confidence_threshold: 0.7   # below this evidence-calibrated confidence a person decides (escalate)
+root_cause_sure: 0.7                # below this the root-cause agent re-checks facts with read-only tools
+knowledge_relevant_score: 0.0       # cross-encoder logit above which a document counts as relevant
+knowledge_min_relevant: 3           # fewer relevant documents → rewrite the query and retry once
+knowledge_top_k: 8                  # documents retrieved per query
+knowledge_cite: 4                   # citations passed to the root-cause prompt
+knowledge_memory_k: 2               # past verified fixes offered per incident
+calibrator_model_weight: 0.4        # share of the model's own confidence in the calibrated confidence

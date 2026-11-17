@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pipeline-incident-copilot"
+version = "0.1.0"
+description = "Multi-agent RAG copilot that diagnoses and helps resolve data pipeline failures."
+requires-python = ">=3.12"
+dependencies = [
+    "python-dotenv>=1.0",
+    "pydantic>=2.7",
+    # integrations
+    "databricks-sdk>=0.30",
+    "keyring>=25",  # connection secrets in the macOS Keychain
+    # LLM + orchestration
+    "anthropic>=1.11",
+    "langgraph>=0.2",
+    "langgraph-checkpoint-sqlite>=2.0",
+    "langchain-core>=0.3",
+    # RAG
+    "langchain-text-splitters>=0.3",
+    "qdrant-client>=1.12",
+    "sentence-transformers>=3.0",
+    "pypdf>=5",  # company documents uploaded in the console (PDF)
+    "python-docx>=1.1",  # ... and Word
+    # observability
+    "langfuse>=4.16",
+    "requests>=2.31",
+]
+
+[project.scripts]
+copilot = "pipeline_incident_copilot.cli.main:main"
+
+[project.optional-dependencies]
+local-llm = ["mlx-lm>=0.31"]  # Apple Silicon only
+dev = ["pytest>=8", "ruff>=0.6", "python-pptx>=1.0"]  # python-pptx: scripts/build_review_deck.py
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pipeline_incident_copilot", "evals"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff.lint.per-file-ignores]
+# Databricks notebooks: `spark` / `dbutils` are runtime globals; cells import mid-file
+"databricks/notebooks/*.py" = ["F821", "E402"]
+# email HTML must use inline styles (Gmail/Outlook strip classes), so its lines are long
+"src/pipeline_incident_copilot/notifications/html_templates.py" = ["E501"]
+"src/pipeline_incident_copilot/interface/approval_server.py" = ["E501"]

@@ -1,0 +1,963 @@
+{
+  "uid": "pipeline-health",
+  "title": "Pipeline Health \u00b7 loghub_etl",
+  "tags": [
+    "loghub_etl",
+    "pipeline-incident-copilot"
+  ],
+  "timezone": "utc",
+  "editable": true,
+  "refresh": "",
+  "schemaVersion": 39,
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "description": "Status of the loghub_etl Databricks job, from the pipeline_runs and dq_results audit tables.",
+  "links": [
+    {
+      "title": "Job in Databricks",
+      "url": "https://dbc-xxxxxxxx-xxxx.cloud.databricks.com/jobs/1019584803253166",
+      "type": "link",
+      "targetBlank": true,
+      "icon": "external link"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Last Spark run",
+      "description": "Status of the most recent Spark run (any time).",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT status FROM workspace.pipeline_demo.pipeline_runs WHERE source = 'spark' ORDER BY recorded_at DESC LIMIT 1",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "SUCCEEDED": {
+                  "text": "Succeeded",
+                  "color": "green",
+                  "index": 0
+                },
+                "FAILED": {
+                  "text": "Failed",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^status$/",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Last HDFS run",
+      "description": "Status of the most recent HDFS run (any time).",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT status FROM workspace.pipeline_demo.pipeline_runs WHERE source = 'hdfs' ORDER BY recorded_at DESC LIMIT 1",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "SUCCEEDED": {
+                  "text": "Succeeded",
+                  "color": "green",
+                  "index": 0
+                },
+                "FAILED": {
+                  "text": "Failed",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^status$/",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Success rate",
+      "description": "Share of runs in the selected time range that completed every task.",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT 100.0 * avg(CASE WHEN status = 'SUCCEEDED' THEN 1 ELSE 0 END) AS success_rate FROM workspace.pipeline_demo.pipeline_runs WHERE $__timeFilter(recorded_at)",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 95
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Failed runs",
+      "description": "Runs in the selected time range where a task failed. Each one should become an incident.",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT count(*) AS failed FROM workspace.pipeline_demo.pipeline_runs WHERE status = 'FAILED' AND $__timeFilter(recorded_at)",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Runs",
+      "description": "All runs in the selected time range.",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT count(*) AS runs FROM workspace.pipeline_demo.pipeline_runs WHERE $__timeFilter(recorded_at)",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Average duration",
+      "description": "Average start-to-record time. The health rule warns above 900 s.",
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT avg(duration_seconds) AS avg_duration FROM workspace.pipeline_demo.pipeline_runs WHERE $__timeFilter(recorded_at)",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 600
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 7,
+      "type": "text",
+      "title": "About this pipeline",
+      "description": "Static notes for whoever opens this dashboard.",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 8,
+        "h": 13
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "### What this pipeline does\n**loghub_etl** turns each day's Spark/HDFS log drop into hourly event counts:\n`bronze_ingest \u2192 silver_parse \u2192 quality_checks \u2192 gold_aggregate \u2192 record_run`\n\n- **Schedule:** daily 05:00 UTC (paused in dev) \u00b7 gold due 06:00 UTC\n- **Owner:** data-platform-team (on-call)\n- **Alerts:** email on failure; warning if a run takes > 15 min\n- **Data:** `workspace.pipeline_demo` \u00b7 landing volume `raw_logs/<source>/<date>/`\n\n### How to read this dashboard\nGreen tiles = healthy. A red **Last run** tile or any **Failed runs** means an incident.\nOpen the run from **Latest runs** (click the run id), check which **task** failed,\nthen use the matching runbook below.\n\n### Runbooks by failed task\n| Task | Usual cause | Runbook |\n|---|---|---|\n| bronze_ingest | file never arrived / wrong path | missing-input-data |\n| silver_parse | new or changed columns | schema-change |\n| quality_checks | bad timestamps, empty or misdated batch | data-quality-breach |\n| gold_aggregate | no write permission / out of memory | access-and-permissions \u00b7 resource-exhaustion |\n"
+      }
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Failures by task",
+      "description": "Which pipeline step breaks most often. Points to the runbook to read first.",
+      "gridPos": {
+        "x": 8,
+        "y": 4,
+        "w": 8,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT failed_task, count(*) AS failures FROM workspace.pipeline_demo.pipeline_runs WHERE status = 'FAILED' AND $__timeFilter(recorded_at) GROUP BY failed_task ORDER BY failures DESC",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "failed_task",
+        "showValue": "always",
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "piechart",
+      "title": "Runs by status",
+      "description": "Succeeded vs failed in the selected time range.",
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 8,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT status, count(*) AS runs FROM workspace.pipeline_demo.pipeline_runs WHERE $__timeFilter(recorded_at) GROUP BY status",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "SUCCEEDED": {
+                  "text": "Succeeded",
+                  "color": "green",
+                  "index": 0
+                },
+                "FAILED": {
+                  "text": "Failed",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SUCCEEDED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "FAILED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "pieType": "donut",
+        "displayLabels": [
+          "value",
+          "name"
+        ],
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "right"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Run duration",
+      "description": "Seconds per run. Out-of-memory failures show up as ~6-minute spikes.",
+      "gridPos": {
+        "x": 8,
+        "y": 10,
+        "w": 8,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT recorded_at AS time, duration_seconds AS duration FROM workspace.pipeline_demo.pipeline_runs WHERE $__timeFilter(recorded_at) ORDER BY time",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 7
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Rows per layer",
+      "description": "Rows written for each run. A gap in a layer means the run stopped before it.",
+      "gridPos": {
+        "x": 16,
+        "y": 10,
+        "w": 8,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT recorded_at AS time, bronze_rows AS bronze, silver_rows AS silver, gold_rows AS gold FROM workspace.pipeline_demo.pipeline_runs WHERE $__timeFilter(recorded_at) ORDER BY time",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 6
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Latest runs",
+      "description": "Newest first. Click a run id to open it in Databricks; error_summary is the first line of the failed task's error.",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT recorded_at AS recorded, source, run_date, status, failed_task, error_summary, round(duration_seconds) AS seconds, bronze_rows, silver_rows, gold_rows, left(code_version, 7) AS code, job_run_id AS run FROM workspace.pipeline_demo.pipeline_runs WHERE $__timeFilter(recorded_at) ORDER BY recorded_at DESC LIMIT 50",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "SUCCEEDED": {
+                        "text": "Succeeded",
+                        "color": "green",
+                        "index": 0
+                      },
+                      "FAILED": {
+                        "text": "Failed",
+                        "color": "red",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "run"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open run in Databricks",
+                    "url": "https://dbc-xxxxxxxx-xxxx.cloud.databricks.com/jobs/1019584803253166/runs/${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error_summary"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 520
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "bargauge",
+      "title": "Quality rules \u2014 pass rate",
+      "description": "Share of runs passing each rule in quality_checks.",
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 10,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT rule, 100.0 * avg(CASE WHEN passed THEN 1 ELSE 0 END) AS pass_rate FROM workspace.pipeline_demo.dq_results WHERE $__timeFilter(checked_at) GROUP BY rule ORDER BY rule",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 95
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showUnfilled": true
+      }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Recent failed quality checks",
+      "description": "Rules that stopped a run. observed vs threshold shows how far off the batch was.",
+      "gridPos": {
+        "x": 10,
+        "y": 27,
+        "w": 14,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-databricks-datasource",
+        "uid": "databricks-pipeline"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-databricks-datasource",
+            "uid": "databricks-pipeline"
+          },
+          "rawSql": "SELECT checked_at, source, run_date, rule, round(observed, 4) AS observed, threshold, job_run_id AS run FROM workspace.pipeline_demo.dq_results WHERE NOT passed AND $__timeFilter(checked_at) ORDER BY checked_at DESC LIMIT 20",
+          "format": 1
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "run"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open run in Databricks",
+                    "url": "https://dbc-xxxxxxxx-xxxx.cloud.databricks.com/jobs/1019584803253166/runs/${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 15,
+      "type": "text",
+      "title": "Incidents (coming in Phase 3)",
+      "description": "Placeholder until the incident store exists.",
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "When the copilot's watcher is running, this row will show **open incidents**, what the agent is doing (*investigating \u00b7 waiting for approval \u00b7 resolved \u00b7 escalated*) and **time to resolve** for each failed run above."
+      }
+    }
+  ]
+}

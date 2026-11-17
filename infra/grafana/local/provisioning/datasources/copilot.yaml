@@ -1,0 +1,11 @@
+# The copilot's incident store, read-only (the plugin adds _pragma=query_only(1)).
+apiVersion: 1
+datasources:
+  - name: Copilot incidents
+    uid: copilot-sqlite
+    type: frser-sqlite-datasource
+    access: proxy
+    isDefault: true
+    editable: false
+    jsonData:
+      path: $COPILOT_DB_PATH

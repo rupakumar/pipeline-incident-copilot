@@ -1,0 +1,113 @@
+resources:
+  jobs:
+    loghub_etl:
+      name: loghub_etl
+      description: >-
+        Daily LogHub ETL: one log drop per source and date -> bronze -> silver -> quality
+        gate -> hourly gold. record_run always runs and writes the run to pipeline_runs.
+      tags:
+        team: data-platform
+        pipeline: loghub
+        architecture: medallion
+      max_concurrent_runs: 1
+      timeout_seconds: 1800
+      queue:
+        enabled: true
+
+      schedule:
+        quartz_cron_expression: "0 0 5 * * ?"  # 05:00 UTC, gold due by 06:00
+        timezone_id: UTC
+        pause_status: ${var.schedule_pause_status}
+
+      email_notifications:
+        on_failure:
+          - ${workspace.current_user.userName}
+        on_duration_warning_threshold_exceeded:
+          - ${workspace.current_user.userName}
+      health:
+        rules:
+          - metric: RUN_DURATION_SECONDS
+            op: GREATER_THAN
+            value: 900
+
+      parameters:
+        - name: source  # spark | hdfs
+          default: spark
+        - name: run_date  # delivery date YYYY-MM-DD; scheduled runs process the trigger date
+          default: "{{job.trigger.time.iso_date}}"
+        - name: input_path  # empty = the drop for run_date in the landing volume
+          default: ""
+        - name: timestamp_format  # empty = the source's native log format
+          default: ""
+        - name: silver_write_mode  # overwrite (full refresh) | append (incremental)
+          default: overwrite
+        - name: enrich_columns  # comma-separated: host_id, region, cluster
+          default: ""
+        - name: level_encoding  # text | numeric
+          default: text
+        - name: gold_table  # empty = workspace.pipeline_demo.<source>_logs_gold_hourly
+          default: ""
+        - name: debug_sample_rows  # >0 collects a sample to the driver for inspection
+          default: "0"
+
+      tasks:
+        - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../notebooks/bronze_ingest.py
+            base_parameters:
+              job_run_id: "{{job.run_id}}"
+          disable_auto_optimization: ${var.disable_auto_optimization}
+          timeout_seconds: 600
+          max_retries: ${var.task_max_retries}
+          min_retry_interval_millis: 60000
+
+        - task_key: silver_parse
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../notebooks/silver_parse.py
+            base_parameters:
+              job_run_id: "{{job.run_id}}"
+          disable_auto_optimization: ${var.disable_auto_optimization}
+          timeout_seconds: 600
+          max_retries: ${var.task_max_retries}
+          min_retry_interval_millis: 60000
+
+        - task_key: quality_checks
+          depends_on:
+            - task_key: silver_parse
+          notebook_task:
+            notebook_path: ../notebooks/quality_checks.py
+            base_parameters:
+              job_run_id: "{{job.run_id}}"
+          disable_auto_optimization: ${var.disable_auto_optimization}
+          timeout_seconds: 600
+          max_retries: 0  # a failed rule is a data problem; retrying cannot fix it
+
+        - task_key: gold_aggregate
+          depends_on:
+            - task_key: quality_checks
+          notebook_task:
+            notebook_path: ../notebooks/gold_aggregate.py
+            base_parameters:
+              job_run_id: "{{job.run_id}}"
+          disable_auto_optimization: ${var.disable_auto_optimization}
+          timeout_seconds: 900
+          max_retries: ${var.task_max_retries}
+          min_retry_interval_millis: 60000
+
+        - task_key: record_run
+          depends_on:
+            - task_key: bronze_ingest
+            - task_key: silver_parse
+            - task_key: quality_checks
+            - task_key: gold_aggregate
+          run_if: ALL_DONE  # also records failed runs
+          notebook_task:
+            notebook_path: ../notebooks/record_run.py
+            base_parameters:
+              job_run_id: "{{job.run_id}}"
+              code_version: ${bundle.git.commit}
+          disable_auto_optimization: ${var.disable_auto_optimization}
+          timeout_seconds: 600  # 300 s timed out once on a slow serverless start (mi-02, 2026-10-04)
+          max_retries: 0

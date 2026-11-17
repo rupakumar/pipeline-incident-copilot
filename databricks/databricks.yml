@@ -1,0 +1,48 @@
+# Databricks Asset Bundle for the LogHub ETL pipeline: the job definition lives here, in git,
+# and every deploy is a versioned change (evidence for "what changed since the last good run").
+#
+#   python databricks/provision.py         # once: schema, volume, audit tables, landing drops
+#   python databricks/bundle.py validate   # check the bundle
+#   python databricks/bundle.py deploy     # sync notebooks + create/update the job
+#
+# bundle.py runs the Databricks CLI with DATABRICKS_HOST / DATABRICKS_TOKEN from .env.
+
+bundle:
+  name: loghub_etl
+
+include:
+  - resources/*.yml
+
+sync:
+  exclude:
+    - "**/__pycache__"
+    - provision.py
+    - bundle.py
+    - sql
+
+variables:
+  task_max_retries:
+    description: Automatic retries per task. 0 in dev so every failure is seen exactly once.
+    default: 0
+  disable_auto_optimization:
+    description: Serverless auto-optimization silently retries failed tasks; off in dev for one clean failure.
+    default: true
+  schedule_pause_status:
+    description: PAUSED in dev; the daily schedule only runs in prod.
+    default: PAUSED
+
+targets:
+  dev:
+    default: true
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+  # For a separate production workspace (set workspace.host there). Not deployed in this demo.
+  prod:
+    mode: production
+    variables:
+      task_max_retries: 2
+      disable_auto_optimization: false
+      schedule_pause_status: UNPAUSED
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

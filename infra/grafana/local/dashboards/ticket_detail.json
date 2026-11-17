@@ -1,0 +1,979 @@
+{
+  "uid": "copilot-ticket-detail",
+  "title": "Ticket detail",
+  "description": "One ticket: status, decision, why the confidence is what it is, diagnosis, stages, evidence and history.",
+  "tags": [
+    "pipeline-incident-copilot"
+  ],
+  "timezone": "utc",
+  "editable": false,
+  "graphTooltip": 0,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true,
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m"
+    ]
+  },
+  "links": [
+    {
+      "title": "Incident Command",
+      "type": "link",
+      "url": "/d/copilot-incident-desk/incident-desk",
+      "icon": "dashboard"
+    },
+    {
+      "title": "Connections",
+      "type": "link",
+      "url": "/d/copilot-connections/connections",
+      "icon": "dashboard"
+    },
+    {
+      "title": "Approval console",
+      "type": "link",
+      "url": "__APPROVAL_CONSOLE_URL__",
+      "targetBlank": true,
+      "icon": "external link"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "incident",
+        "label": "Ticket",
+        "type": "query",
+        "datasource": {
+          "type": "frser-sqlite-datasource",
+          "uid": "copilot-sqlite"
+        },
+        "query": "SELECT incident_id FROM incidents ORDER BY seq DESC",
+        "definition": "SELECT incident_id FROM incidents ORDER BY seq DESC",
+        "refresh": 1,
+        "sort": 0,
+        "current": {},
+        "options": [],
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Ticket $incident",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "WITH d AS (SELECT diagnosis_json AS diagnosis_json FROM diagnoses WHERE incident_id = '$incident' ORDER BY id DESC LIMIT 1)\nSELECT i.status AS \"Status\",\n  coalesce((SELECT json_extract(diagnosis_json, '$.root_cause.failure_class') FROM d), '-') AS \"Class\",\n  (SELECT coalesce(json_extract(d.diagnosis_json, '$.confidence.calibrated'), json_extract(d.diagnosis_json, '$.root_cause.confidence')) FROM d) AS \"Confidence\",\n  CASE WHEN EXISTS (SELECT 1 FROM incident_events a WHERE a.incident_id = i.incident_id AND a.kind = 'auto_approved')\n       THEN 'auto · known fix'\n       ELSE coalesce((SELECT CASE WHEN a.kind = 'approval:reject' THEN 'denied · ' ELSE '' END\n                             || substr(a.detail, 4, instr(a.detail || ':', ':') - 4)\n                      FROM incident_events a WHERE a.incident_id = i.incident_id AND a.kind LIKE 'approval:%'\n                      ORDER BY a.id DESC LIMIT 1), '-') END AS \"Decided by\",\n  CASE i.platform WHEN 'databricks' THEN 'Databricks' WHEN 'jenkins' THEN 'Jenkins' WHEN 'snowflake' THEN 'Snowflake' WHEN 'aws_glue' THEN 'AWS Glue' WHEN 'azure_data_factory' THEN 'Azure Data Factory' ELSE i.platform END || ' · ' || coalesce(i.pipeline, '?') AS \"Application\",\n  coalesce(i.failed_task, '-') AS \"Failed task\",\n  replace(substr(i.opened_at, 1, 16), 'T', ' ') AS \"Opened (UTC)\"\nFROM incidents i WHERE i.incident_id = '$incident'",
+          "queryText": "WITH d AS (SELECT diagnosis_json AS diagnosis_json FROM diagnoses WHERE incident_id = '$incident' ORDER BY id DESC LIMIT 1)\nSELECT i.status AS \"Status\",\n  coalesce((SELECT json_extract(diagnosis_json, '$.root_cause.failure_class') FROM d), '-') AS \"Class\",\n  (SELECT coalesce(json_extract(d.diagnosis_json, '$.confidence.calibrated'), json_extract(d.diagnosis_json, '$.root_cause.confidence')) FROM d) AS \"Confidence\",\n  CASE WHEN EXISTS (SELECT 1 FROM incident_events a WHERE a.incident_id = i.incident_id AND a.kind = 'auto_approved')\n       THEN 'auto · known fix'\n       ELSE coalesce((SELECT CASE WHEN a.kind = 'approval:reject' THEN 'denied · ' ELSE '' END\n                             || substr(a.detail, 4, instr(a.detail || ':', ':') - 4)\n                      FROM incident_events a WHERE a.incident_id = i.incident_id AND a.kind LIKE 'approval:%'\n                      ORDER BY a.id DESC LIMIT 1), '-') END AS \"Decided by\",\n  CASE i.platform WHEN 'databricks' THEN 'Databricks' WHEN 'jenkins' THEN 'Jenkins' WHEN 'snowflake' THEN 'Snowflake' WHEN 'aws_glue' THEN 'AWS Glue' WHEN 'azure_data_factory' THEN 'Azure Data Factory' ELSE i.platform END || ' · ' || coalesce(i.pipeline, '?') AS \"Application\",\n  coalesce(i.failed_task, '-') AS \"Failed task\",\n  replace(substr(i.opened_at, 1, 16), 'T', ' ') AS \"Opened (UTC)\"\nFROM incidents i WHERE i.incident_id = '$incident'",
+          "timeColumns": []
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "text": {
+          "titleSize": 13,
+          "valueSize": 20
+        },
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#4E5D72"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "open": {
+                        "text": "open",
+                        "color": "#1846C9",
+                        "index": 0
+                      },
+                      "investigating": {
+                        "text": "investigating",
+                        "color": "#1846C9",
+                        "index": 1
+                      },
+                      "awaiting_approval": {
+                        "text": "awaiting approval",
+                        "color": "#C27A00",
+                        "index": 2
+                      },
+                      "remediating": {
+                        "text": "rerun running",
+                        "color": "#1846C9",
+                        "index": 3
+                      },
+                      "resolved": {
+                        "text": "resolved",
+                        "color": "#00843D",
+                        "index": 4
+                      },
+                      "escalated": {
+                        "text": "escalated",
+                        "color": "#D52B1E",
+                        "index": 5
+                      },
+                      "rejected": {
+                        "text": "rejected",
+                        "color": "#8C96A5",
+                        "index": 6
+                      },
+                      "closed": {
+                        "text": "closed",
+                        "color": "#8C96A5",
+                        "index": 7
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#8C96A5",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Class"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "permissions": {
+                        "text": "permissions",
+                        "color": "#8E2DA8",
+                        "index": 0
+                      },
+                      "data_quality": {
+                        "text": "data quality",
+                        "color": "#C27A00",
+                        "index": 1
+                      },
+                      "resource_exhaustion": {
+                        "text": "out of memory",
+                        "color": "#D52B1E",
+                        "index": 2
+                      },
+                      "missing_input": {
+                        "text": "missing input",
+                        "color": "#1846C9",
+                        "index": 3
+                      },
+                      "schema_change": {
+                        "text": "schema change",
+                        "color": "#00838F",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Confidence"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#D52B1E",
+                      "value": null
+                    },
+                    {
+                      "color": "#C27A00",
+                      "value": 0.7
+                    },
+                    {
+                      "color": "#00843D",
+                      "value": 0.85
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Decision",
+      "description": "Approve / Deny a waiting fix, or Close an escalated ticket: each opens the console's confirm page.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "WITH latest AS (SELECT incident_id, max(id) AS id FROM diagnoses GROUP BY incident_id)\nSELECT CASE WHEN i.status = 'awaiting_approval' AND json_extract(d.diagnosis_json, '$.resolution.action') IS NOT NULL THEN 'Approve' ELSE '' END AS \"Approve\",\n  CASE WHEN i.status = 'awaiting_approval' AND json_extract(d.diagnosis_json, '$.resolution.action') IS NOT NULL THEN 'Deny' ELSE '' END AS \"Deny\",\n  CASE WHEN i.status = 'escalated' THEN 'Close' ELSE '' END AS \"Close\",\n  CASE WHEN i.status = 'awaiting_approval' AND json_extract(d.diagnosis_json, '$.resolution.action') IS NOT NULL THEN 'rerun_job ' || json_extract(d.diagnosis_json, '$.resolution.action.parameters')\n       WHEN i.status = 'escalated' THEN 'a person must act, then close the ticket'\n       ELSE 'no decision needed (' || replace(i.status, '_', ' ') || ')' END AS \"Decision\",\n  'Open on ' || CASE i.platform WHEN 'databricks' THEN 'Databricks' WHEN 'jenkins' THEN 'Jenkins' WHEN 'snowflake' THEN 'Snowflake' WHEN 'aws_glue' THEN 'AWS Glue' WHEN 'azure_data_factory' THEN 'Azure Data Factory' ELSE i.platform END AS \"Failed run\",\n  'Open the trace' AS \"Langfuse\",\n  json_extract(i.incident_json, '$.run.run_page_url') AS \"run_url\"\nFROM incidents i LEFT JOIN latest l USING (incident_id) LEFT JOIN diagnoses d ON d.id = l.id\nWHERE i.incident_id = '$incident'",
+          "queryText": "WITH latest AS (SELECT incident_id, max(id) AS id FROM diagnoses GROUP BY incident_id)\nSELECT CASE WHEN i.status = 'awaiting_approval' AND json_extract(d.diagnosis_json, '$.resolution.action') IS NOT NULL THEN 'Approve' ELSE '' END AS \"Approve\",\n  CASE WHEN i.status = 'awaiting_approval' AND json_extract(d.diagnosis_json, '$.resolution.action') IS NOT NULL THEN 'Deny' ELSE '' END AS \"Deny\",\n  CASE WHEN i.status = 'escalated' THEN 'Close' ELSE '' END AS \"Close\",\n  CASE WHEN i.status = 'awaiting_approval' AND json_extract(d.diagnosis_json, '$.resolution.action') IS NOT NULL THEN 'rerun_job ' || json_extract(d.diagnosis_json, '$.resolution.action.parameters')\n       WHEN i.status = 'escalated' THEN 'a person must act, then close the ticket'\n       ELSE 'no decision needed (' || replace(i.status, '_', ' ') || ')' END AS \"Decision\",\n  'Open on ' || CASE i.platform WHEN 'databricks' THEN 'Databricks' WHEN 'jenkins' THEN 'Jenkins' WHEN 'snowflake' THEN 'Snowflake' WHEN 'aws_glue' THEN 'AWS Glue' WHEN 'azure_data_factory' THEN 'Azure Data Factory' ELSE i.platform END AS \"Failed run\",\n  'Open the trace' AS \"Langfuse\",\n  json_extract(i.incident_json, '$.run.run_page_url') AS \"run_url\"\nFROM incidents i LEFT JOIN latest l USING (incident_id) LEFT JOIN diagnoses d ON d.id = l.id\nWHERE i.incident_id = '$incident'",
+          "timeColumns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Approve"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Approve": {
+                        "text": "Approve",
+                        "color": "#00843D",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 96
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Approve: opens the confirm page",
+                    "url": "__APPROVAL_CONSOLE_URL__/review/${incident}/approve",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Deny"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Deny": {
+                        "text": "Deny",
+                        "color": "#D52B1E",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 96
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Deny: opens the confirm page",
+                    "url": "__APPROVAL_CONSOLE_URL__/review/${incident}/reject",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Close"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Close": {
+                        "text": "Close",
+                        "color": "#8C96A5",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 96
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Close: opens the confirm page",
+                    "url": "__APPROVAL_CONSOLE_URL__/review/${incident}/close",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed run"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the failed run",
+                    "url": "${__data.fields.run_url}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Langfuse"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Langfuse session",
+                    "url": "__LANGFUSE_PROJECT_URL__/sessions/${incident}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "run_url"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Why this confidence",
+      "description": "Calibrated = 0.4 × model + 0.6 × share of the four evidence checks passed. Older tickets show the score without its checks.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 10,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "WITH d AS (SELECT diagnosis_json AS diagnosis_json FROM diagnoses WHERE incident_id = '$incident' ORDER BY id DESC LIMIT 1)\nSELECT 1 AS n, 'Model confidence' AS \"Part\", printf('%.2f', json_extract(diagnosis_json, '$.confidence.model')) AS \"Value\", 'the model’s own number (counts 40%)' AS \"Meaning\" FROM d\nUNION ALL SELECT 2, 'Names what changed since the last good run', CASE json_extract(diagnosis_json, '$.confidence.signals.explained_by_change') WHEN 1 THEN '✓ passed' WHEN 0 THEN '✗ failed' ELSE 'not recorded' END, 'evidence check (the four together count 60%)' FROM d\nUNION ALL SELECT 3, 'Confirmed by a live check', CASE json_extract(diagnosis_json, '$.confidence.signals.confirmed_by_check') WHEN 1 THEN '✓ passed' WHEN 0 THEN '✗ failed' ELSE 'not recorded' END, 'evidence check (the four together count 60%)' FROM d\nUNION ALL SELECT 4, 'The error’s own document was found', CASE json_extract(diagnosis_json, '$.confidence.signals.exact_error_doc') WHEN 1 THEN '✓ passed' WHEN 0 THEN '✗ failed' ELSE 'not recorded' END, 'evidence check (the four together count 60%)' FROM d\nUNION ALL SELECT 5, 'Knowledge search was strong', CASE json_extract(diagnosis_json, '$.confidence.signals.knowledge_ok') WHEN 1 THEN '✓ passed' WHEN 0 THEN '✗ failed' ELSE 'not recorded' END, 'evidence check (the four together count 60%)' FROM d\nUNION ALL SELECT 6, 'Calibrated confidence', printf('%.2f', coalesce(json_extract(d.diagnosis_json, '$.confidence.calibrated'), json_extract(d.diagnosis_json, '$.root_cause.confidence'))), CASE WHEN coalesce(json_extract(d.diagnosis_json, '$.confidence.calibrated'), json_extract(d.diagnosis_json, '$.root_cause.confidence')) >= 0.85 THEN 'auto-fix eligible (with a known fix)' WHEN coalesce(json_extract(d.diagnosis_json, '$.confidence.calibrated'), json_extract(d.diagnosis_json, '$.root_cause.confidence')) >= 0.7 THEN 'a person approves' ELSE 'escalated to a person' END FROM d\nORDER BY n",
+          "queryText": "WITH d AS (SELECT diagnosis_json AS diagnosis_json FROM diagnoses WHERE incident_id = '$incident' ORDER BY id DESC LIMIT 1)\nSELECT 1 AS n, 'Model confidence' AS \"Part\", printf('%.2f', json_extract(diagnosis_json, '$.confidence.model')) AS \"Value\", 'the model’s own number (counts 40%)' AS \"Meaning\" FROM d\nUNION ALL SELECT 2, 'Names what changed since the last good run', CASE json_extract(diagnosis_json, '$.confidence.signals.explained_by_change') WHEN 1 THEN '✓ passed' WHEN 0 THEN '✗ failed' ELSE 'not recorded' END, 'evidence check (the four together count 60%)' FROM d\nUNION ALL SELECT 3, 'Confirmed by a live check', CASE json_extract(diagnosis_json, '$.confidence.signals.confirmed_by_check') WHEN 1 THEN '✓ passed' WHEN 0 THEN '✗ failed' ELSE 'not recorded' END, 'evidence check (the four together count 60%)' FROM d\nUNION ALL SELECT 4, 'The error’s own document was found', CASE json_extract(diagnosis_json, '$.confidence.signals.exact_error_doc') WHEN 1 THEN '✓ passed' WHEN 0 THEN '✗ failed' ELSE 'not recorded' END, 'evidence check (the four together count 60%)' FROM d\nUNION ALL SELECT 5, 'Knowledge search was strong', CASE json_extract(diagnosis_json, '$.confidence.signals.knowledge_ok') WHEN 1 THEN '✓ passed' WHEN 0 THEN '✗ failed' ELSE 'not recorded' END, 'evidence check (the four together count 60%)' FROM d\nUNION ALL SELECT 6, 'Calibrated confidence', printf('%.2f', coalesce(json_extract(d.diagnosis_json, '$.confidence.calibrated'), json_extract(d.diagnosis_json, '$.root_cause.confidence'))), CASE WHEN coalesce(json_extract(d.diagnosis_json, '$.confidence.calibrated'), json_extract(d.diagnosis_json, '$.root_cause.confidence')) >= 0.85 THEN 'auto-fix eligible (with a known fix)' WHEN coalesce(json_extract(d.diagnosis_json, '$.confidence.calibrated'), json_extract(d.diagnosis_json, '$.root_cause.confidence')) >= 0.7 THEN 'a person approves' ELSE 'escalated to a person' END FROM d\nORDER BY n",
+          "timeColumns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "n"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Part"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Diagnosis",
+      "description": "The latest diagnosis of the agents.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 8,
+        "w": 14,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "WITH d AS (SELECT diagnosis_json AS j FROM diagnoses WHERE incident_id = '$incident' ORDER BY id DESC LIMIT 1)\nSELECT 'Root cause' AS \"Item\", json_extract(j, '$.root_cause.cause') AS \"Detail\" FROM d\nUNION ALL SELECT 'Rests on', (SELECT group_concat(value, ', ') FROM json_each(j, '$.root_cause.evidence_refs')) FROM d\nUNION ALL SELECT 'Proposed fix', json_extract(j, '$.resolution.summary') FROM d\nUNION ALL SELECT 'Steps', (SELECT group_concat(value, '  →  ') FROM json_each(j, '$.resolution.steps')) FROM d\nUNION ALL SELECT 'Automated action', coalesce('rerun_job ' || json_extract(j, '$.resolution.action.parameters'),\n  'none: ' || coalesce(json_extract(j, '$.resolution.action_rejected_reason'), 'a person must act first')) FROM d\nUNION ALL SELECT 'Known fix', coalesce(json_extract(j, '$.auto_approval.reason'), '-') FROM d\nUNION ALL SELECT 'Knowledge cited', (SELECT group_concat(json_extract(value, '$.parent_id'), ', ') FROM json_each(j, '$.knowledge.citations')) FROM d\nUNION ALL SELECT 'Rerun', CASE WHEN json_extract(j, '$.remediation.rerun_run_id') IS NULL THEN '-'\n  ELSE json_extract(j, '$.remediation.rerun_run_id') || ' · ' ||\n       CASE WHEN json_extract(j, '$.remediation.succeeded') THEN 'succeeded' ELSE coalesce(json_extract(j, '$.remediation.result_state'), 'running') END END FROM d",
+          "queryText": "WITH d AS (SELECT diagnosis_json AS j FROM diagnoses WHERE incident_id = '$incident' ORDER BY id DESC LIMIT 1)\nSELECT 'Root cause' AS \"Item\", json_extract(j, '$.root_cause.cause') AS \"Detail\" FROM d\nUNION ALL SELECT 'Rests on', (SELECT group_concat(value, ', ') FROM json_each(j, '$.root_cause.evidence_refs')) FROM d\nUNION ALL SELECT 'Proposed fix', json_extract(j, '$.resolution.summary') FROM d\nUNION ALL SELECT 'Steps', (SELECT group_concat(value, '  →  ') FROM json_each(j, '$.resolution.steps')) FROM d\nUNION ALL SELECT 'Automated action', coalesce('rerun_job ' || json_extract(j, '$.resolution.action.parameters'),\n  'none: ' || coalesce(json_extract(j, '$.resolution.action_rejected_reason'), 'a person must act first')) FROM d\nUNION ALL SELECT 'Known fix', coalesce(json_extract(j, '$.auto_approval.reason'), '-') FROM d\nUNION ALL SELECT 'Knowledge cited', (SELECT group_concat(json_extract(value, '$.parent_id'), ', ') FROM json_each(j, '$.knowledge.citations')) FROM d\nUNION ALL SELECT 'Rerun', CASE WHEN json_extract(j, '$.remediation.rerun_run_id') IS NULL THEN '-'\n  ELSE json_extract(j, '$.remediation.rerun_run_id') || ' · ' ||\n       CASE WHEN json_extract(j, '$.remediation.succeeded') THEN 'succeeded' ELSE coalesce(json_extract(j, '$.remediation.result_state'), 'running') END END FROM d",
+          "timeColumns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Item"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Stages",
+      "description": "Each stage the ticket went through and how long it stayed there.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 10,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "WITH s AS (\n  SELECT at, CASE kind WHEN 'opened' THEN 'detected' ELSE replace(replace(kind, 'status:', ''), '_', ' ') END AS stage, id\n  FROM incident_events WHERE incident_id = '$incident' AND (kind = 'opened' OR kind LIKE 'status:%' OR kind = 'auto_approved'))\nSELECT replace(substr(at, 1, 19), 'T', ' ') AS \"Time (UTC)\", stage AS \"Stage\",\n  CASE WHEN lead(at) OVER (ORDER BY id) IS NULL THEN 'now'\n       ELSE printf('%.0f s', (julianday(lead(at) OVER (ORDER BY id)) - julianday(at)) * 86400) END AS \"Time in stage\"\nFROM s ORDER BY id",
+          "queryText": "WITH s AS (\n  SELECT at, CASE kind WHEN 'opened' THEN 'detected' ELSE replace(replace(kind, 'status:', ''), '_', ' ') END AS stage, id\n  FROM incident_events WHERE incident_id = '$incident' AND (kind = 'opened' OR kind LIKE 'status:%' OR kind = 'auto_approved'))\nSELECT replace(substr(at, 1, 19), 'T', ' ') AS \"Time (UTC)\", stage AS \"Stage\",\n  CASE WHEN lead(at) OVER (ORDER BY id) IS NULL THEN 'now'\n       ELSE printf('%.0f s', (julianday(lead(at) OVER (ORDER BY id)) - julianday(at)) * 86400) END AS \"Time in stage\"\nFROM s ORDER BY id",
+          "timeColumns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time (UTC)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Stage"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Evidence",
+      "description": "Collected when the failure was found: the error, the run comparison, the git diff, live checks.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 16,
+        "w": 14,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT 'error' AS \"Check\", substr(json_extract(bundle_json, '$.error'), 1, 400) AS \"Result\" FROM evidence WHERE incident_id = '$incident'\nUNION ALL SELECT json_extract(t.value, '$.tool'), json_extract(t.value, '$.summary')\n  FROM evidence, json_each(evidence.bundle_json, '$.tool_results') t WHERE evidence.incident_id = '$incident'\nUNION ALL SELECT 'not collected', p.value FROM evidence, json_each(evidence.bundle_json, '$.problems') p WHERE evidence.incident_id = '$incident'",
+          "queryText": "SELECT 'error' AS \"Check\", substr(json_extract(bundle_json, '$.error'), 1, 400) AS \"Result\" FROM evidence WHERE incident_id = '$incident'\nUNION ALL SELECT json_extract(t.value, '$.tool'), json_extract(t.value, '$.summary')\n  FROM evidence, json_each(evidence.bundle_json, '$.tool_results') t WHERE evidence.incident_id = '$incident'\nUNION ALL SELECT 'not collected', p.value FROM evidence, json_each(evidence.bundle_json, '$.problems') p WHERE evidence.incident_id = '$incident'",
+          "timeColumns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Check"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Full history",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 7,
+          "type": "table",
+          "title": "History",
+          "description": "Every step for this ticket, newest first.",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 25,
+            "w": 24,
+            "h": 11
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "frser-sqlite-datasource",
+                "uid": "copilot-sqlite"
+              },
+              "queryType": "table",
+              "rawQueryText": "SELECT replace(substr(at, 1, 19), 'T', ' ') AS \"Time (UTC)\", kind AS \"Step\", detail AS \"Detail\"\nFROM incident_events WHERE incident_id = '$incident' ORDER BY id DESC",
+              "queryText": "SELECT replace(substr(at, 1, 19), 'T', ' ') AS \"Time (UTC)\", kind AS \"Step\", detail AS \"Detail\"\nFROM incident_events WHERE incident_id = '$incident' ORDER BY id DESC",
+              "timeColumns": []
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "left",
+                "cellOptions": {
+                  "type": "auto",
+                  "wrapText": true
+                },
+                "inspect": true
+              },
+              "color": {
+                "mode": "thresholds"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "transparent",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Time (UTC)"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 160
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Step"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 220
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "md",
+            "footer": {
+              "show": false
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

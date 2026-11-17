@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/copilot evidence:*)",
+      "Bash(.venv/bin/copilot search:*)",
+      "Bash(.venv/bin/copilot check:*)",
+      "Bash(.venv/bin/copilot check-fix:*)",
+      "Bash(.venv/bin/copilot record:*)",
+      "Bash(.venv/bin/copilot request-approval:*)",
+      "Bash(.venv/bin/copilot show:*)",
+      "Bash(.venv/bin/copilot incidents:*)",
+      "Bash(.venv/bin/copilot status:*)",
+      "Read(databricks/notebooks/**)",
+      "Read(infra/jenkins/jobs/**)",
+      "Write(data/runtime/claude_reports/**)"
+    ],
+    "ask": [
+      "Bash(.venv/bin/copilot approve:*)",
+      "Bash(.venv/bin/copilot reject:*)",
+      "Bash(copilot approve:*)",
+      "Bash(copilot reject:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./data/runtime/jenkins/**)",
+      "Read(./data/runtime/link_secret)"
+    ]
+  }
+}

@@ -1,0 +1,502 @@
+{
+  "uid": "copilot-self-improvement",
+  "title": "Self-improvement",
+  "description": "The nightly loop: scorecard, one change at a time, validator verdicts, branches waiting for a person.",
+  "tags": [
+    "pipeline-incident-copilot"
+  ],
+  "timezone": "utc",
+  "editable": false,
+  "graphTooltip": 0,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true,
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m"
+    ]
+  },
+  "links": [
+    {
+      "title": "Incident desk",
+      "type": "link",
+      "url": "/d/copilot-incident-desk/incident-desk",
+      "icon": "dashboard"
+    },
+    {
+      "title": "Connections",
+      "type": "link",
+      "url": "/d/copilot-connections/connections",
+      "icon": "dashboard"
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Self-improvement loop",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  (SELECT count(*) FROM improvement_decisions WHERE verdict = 'accepted') AS \"Accepted (branches)\",\n  (SELECT count(*) FROM improvement_decisions WHERE verdict = 'rejected') AS \"Rejected\",\n  (SELECT count(*) FROM eval_runs) AS \"Eval runs\",\n  (SELECT replace(substr(max(at), 1, 16), 'T', ' ') FROM eval_runs) AS \"Last nightly (UTC)\"\n",
+          "queryText": "SELECT\n  (SELECT count(*) FROM improvement_decisions WHERE verdict = 'accepted') AS \"Accepted (branches)\",\n  (SELECT count(*) FROM improvement_decisions WHERE verdict = 'rejected') AS \"Rejected\",\n  (SELECT count(*) FROM eval_runs) AS \"Eval runs\",\n  (SELECT replace(substr(max(at), 1, 16), 'T', ' ') FROM eval_runs) AS \"Last nightly (UTC)\"\n",
+          "timeColumns": []
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#1846C9"
+          },
+          "noValue": "-"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Accepted (branches)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#00843D"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rejected"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8C96A5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last nightly (UTC)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4E5D72"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Decisions (one change per night; accepted = a branch a person merges)",
+      "description": "Every change the improver tried, the validator's verdict and reason. Nothing is merged automatically.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT replace(substr(at, 1, 16), 'T', ' ') AS \"When (UTC)\", kind AS \"Kind\", change AS \"Change\",\n  verdict AS \"Verdict\", reason AS \"Why\", coalesce(branch, '') AS \"Branch to review\",\n  json_extract(deltas_json, '$.quality') AS \"Quality Δ (tuning)\"\nFROM improvement_decisions ORDER BY id DESC LIMIT 50",
+          "queryText": "SELECT replace(substr(at, 1, 16), 'T', ' ') AS \"When (UTC)\", kind AS \"Kind\", change AS \"Change\",\n  verdict AS \"Verdict\", reason AS \"Why\", coalesce(branch, '') AS \"Branch to review\",\n  json_extract(deltas_json, '$.quality') AS \"Quality Δ (tuning)\"\nFROM improvement_decisions ORDER BY id DESC LIMIT 50",
+          "timeColumns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "When (UTC)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Kind"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Change"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Verdict"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "accepted": {
+                        "text": "accepted · branch ready",
+                        "color": "#00843D",
+                        "index": 0
+                      },
+                      "rejected": {
+                        "text": "rejected",
+                        "color": "#8C96A5",
+                        "index": 1
+                      },
+                      "skipped": {
+                        "text": "skipped",
+                        "color": "#1846C9",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Why"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Branch to review"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Quality Δ (tuning)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Scorecard: holdout incidents, current config",
+      "description": "The diagnosis eval on the held-out incidents (never used to choose changes), tonight vs the night before.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 10,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "WITH latest AS (SELECT * FROM eval_runs WHERE label = 'baseline' AND split = 'test' ORDER BY id DESC LIMIT 1),\nprev AS (SELECT * FROM eval_runs WHERE label = 'baseline' AND split = 'test' ORDER BY id DESC LIMIT 1 OFFSET 1)\nSELECT m.key AS \"Metric\", m.value AS \"Tonight\",\n  (SELECT json_extract(prev.summary_json, '$.' || m.key) FROM prev) AS \"Previous night\"\nFROM latest, json_each(latest.summary_json) m\nWHERE m.key IN ('all_ok', 'class_ok', 'fact_ok', 'action_ok', 'context_recall', 'context_precision', 'faithfulness',\n                'brier_calibrated', 'escalated', 'mean_seconds', 'incidents')",
+          "queryText": "WITH latest AS (SELECT * FROM eval_runs WHERE label = 'baseline' AND split = 'test' ORDER BY id DESC LIMIT 1),\nprev AS (SELECT * FROM eval_runs WHERE label = 'baseline' AND split = 'test' ORDER BY id DESC LIMIT 1 OFFSET 1)\nSELECT m.key AS \"Metric\", m.value AS \"Tonight\",\n  (SELECT json_extract(prev.summary_json, '$.' || m.key) FROM prev) AS \"Previous night\"\nFROM latest, json_each(latest.summary_json) m\nWHERE m.key IN ('all_ok', 'class_ok', 'fact_ok', 'action_ok', 'context_recall', 'context_precision', 'faithfulness',\n                'brier_calibrated', 'escalated', 'mean_seconds', 'incidents')",
+          "timeColumns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Metric"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Eval runs",
+      "description": "Each eval the loop ran (separate process per configuration).",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 13,
+        "w": 14,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT replace(substr(at, 1, 16), 'T', ' ') AS \"When (UTC)\", label AS \"Run\", split AS \"Split\", config AS \"Config\",\n  json_extract(summary_json, '$.all_ok') AS \"All correct\", json_extract(summary_json, '$.context_recall') AS \"Context recall\",\n  json_extract(summary_json, '$.incidents') AS \"Incidents\"\nFROM eval_runs ORDER BY id DESC LIMIT 40",
+          "queryText": "SELECT replace(substr(at, 1, 16), 'T', ' ') AS \"When (UTC)\", label AS \"Run\", split AS \"Split\", config AS \"Config\",\n  json_extract(summary_json, '$.all_ok') AS \"All correct\", json_extract(summary_json, '$.context_recall') AS \"Context recall\",\n  json_extract(summary_json, '$.incidents') AS \"Incidents\"\nFROM eval_runs ORDER BY id DESC LIMIT 40",
+          "timeColumns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "When (UTC)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Run"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Split"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

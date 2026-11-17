@@ -1,0 +1,833 @@
+{
+  "uid": "copilot-connections",
+  "title": "Connections",
+  "description": "Every connected pipeline platform and application the copilot watches, with health and open tickets.",
+  "tags": [
+    "pipeline-incident-copilot"
+  ],
+  "timezone": "utc",
+  "editable": false,
+  "graphTooltip": 0,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true,
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m"
+    ]
+  },
+  "links": [
+    {
+      "title": "Incident desk",
+      "type": "link",
+      "url": "/d/copilot-incident-desk/incident-desk",
+      "icon": "dashboard"
+    },
+    {
+      "title": "+ Connect a pipeline",
+      "type": "link",
+      "url": "__APPROVAL_CONSOLE_URL__/connections",
+      "targetBlank": true,
+      "icon": "external link"
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Connected pipelines",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 18,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  (SELECT count(DISTINCT platform) FROM connections WHERE enabled) AS \"Platforms\",\n  (SELECT coalesce(sum(json_array_length(pipelines_json)), 0) FROM connections WHERE enabled) AS \"Applications watched\",\n  (SELECT count(*) FROM pipeline_health h JOIN connections c USING (connection_id)\n     WHERE c.enabled AND h.last_state IN ('SUCCESS', 'SUCCEEDED')) AS \"Last run ok\",\n  (SELECT count(*) FROM pipeline_health h JOIN connections c USING (connection_id)\n     WHERE c.enabled AND h.last_state IN ('FAILED', 'FAILURE', 'UNSTABLE')) AS \"Last run failed\",\n  (SELECT count(*) FROM connections WHERE enabled AND last_check_ok = 0) AS \"Connection errors\",\n  (SELECT count(*) FROM incidents WHERE status NOT IN ('resolved', 'rejected', 'closed')) AS \"Open tickets\",\n  (SELECT round((julianday('now') - julianday(max(value))) * 1440, 1) FROM watcher_state WHERE key LIKE 'last_poll:%')\n     AS \"Watcher: min since last poll\"\n",
+          "queryText": "SELECT\n  (SELECT count(DISTINCT platform) FROM connections WHERE enabled) AS \"Platforms\",\n  (SELECT coalesce(sum(json_array_length(pipelines_json)), 0) FROM connections WHERE enabled) AS \"Applications watched\",\n  (SELECT count(*) FROM pipeline_health h JOIN connections c USING (connection_id)\n     WHERE c.enabled AND h.last_state IN ('SUCCESS', 'SUCCEEDED')) AS \"Last run ok\",\n  (SELECT count(*) FROM pipeline_health h JOIN connections c USING (connection_id)\n     WHERE c.enabled AND h.last_state IN ('FAILED', 'FAILURE', 'UNSTABLE')) AS \"Last run failed\",\n  (SELECT count(*) FROM connections WHERE enabled AND last_check_ok = 0) AS \"Connection errors\",\n  (SELECT count(*) FROM incidents WHERE status NOT IN ('resolved', 'rejected', 'closed')) AS \"Open tickets\",\n  (SELECT round((julianday('now') - julianday(max(value))) * 1440, 1) FROM watcher_state WHERE key LIKE 'last_poll:%')\n     AS \"Watcher: min since last poll\"\n",
+          "timeColumns": []
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "wideLayout": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#1846C9"
+          },
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last run ok"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#00843D"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last run failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#D52B1E"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Connection errors"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#8C96A5",
+                      "value": null
+                    },
+                    {
+                      "color": "#D52B1E",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Open tickets"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C27A00"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Watcher: min since last poll"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "noValue",
+                "value": "never"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#00843D",
+                      "value": null
+                    },
+                    {
+                      "color": "#D52B1E",
+                      "value": 10
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "### [＋ Connect a pipeline](__APPROVAL_CONSOLE_URL__/connections)\nDatabricks · Jenkins available now; Snowflake, AWS Glue, Azure Data Factory next. Secrets stay in the macOS Keychain."
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Applications",
+      "description": "Every watched pipeline on every connection, failing ones first, as of the watcher's last poll (copilot watch). Click an application for its tickets, a run number for the run on its platform.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  CASE c.platform WHEN 'databricks' THEN 'Databricks' WHEN 'jenkins' THEN 'Jenkins' WHEN 'snowflake' THEN 'Snowflake' WHEN 'aws_glue' THEN 'AWS Glue' WHEN 'azure_data_factory' THEN 'Azure Data Factory' ELSE c.platform END AS \"Platform\",\n  c.name AS \"Connection\",\n  p.value AS \"Application\",\n  coalesce(h.last_state, 'not polled yet') AS \"Last run\",\n  CASE WHEN h.last_run_id IS NULL THEN '' ELSE '#' || h.last_run_id END AS \"Run\",\n  replace(substr(h.last_run_at, 1, 16), 'T', ' ') AS \"Last run at (UTC)\",\n  coalesce(h.runs_24h, 0) AS \"Runs 24 h\",\n  coalesce(h.failures_24h, 0) AS \"Failed 24 h\",\n  (SELECT count(*) FROM incidents i WHERE i.connection_id = c.connection_id AND i.pipeline = p.value AND i.status NOT IN ('resolved', 'rejected', 'closed')) AS \"Open tickets\",\n  (SELECT count(*) FROM incidents i WHERE i.connection_id = c.connection_id AND i.pipeline = p.value) AS \"All tickets\",\n  c.platform AS \"platform_key\",\n  h.last_run_url AS \"run_url\"\nFROM connections c, json_each(c.pipelines_json) p\nLEFT JOIN pipeline_health h ON h.connection_id = c.connection_id AND h.pipeline = p.value\nWHERE c.enabled\nORDER BY h.last_state IN ('FAILED', 'FAILURE', 'UNSTABLE') DESC, \"Open tickets\" DESC, c.name, p.value",
+          "queryText": "SELECT\n  CASE c.platform WHEN 'databricks' THEN 'Databricks' WHEN 'jenkins' THEN 'Jenkins' WHEN 'snowflake' THEN 'Snowflake' WHEN 'aws_glue' THEN 'AWS Glue' WHEN 'azure_data_factory' THEN 'Azure Data Factory' ELSE c.platform END AS \"Platform\",\n  c.name AS \"Connection\",\n  p.value AS \"Application\",\n  coalesce(h.last_state, 'not polled yet') AS \"Last run\",\n  CASE WHEN h.last_run_id IS NULL THEN '' ELSE '#' || h.last_run_id END AS \"Run\",\n  replace(substr(h.last_run_at, 1, 16), 'T', ' ') AS \"Last run at (UTC)\",\n  coalesce(h.runs_24h, 0) AS \"Runs 24 h\",\n  coalesce(h.failures_24h, 0) AS \"Failed 24 h\",\n  (SELECT count(*) FROM incidents i WHERE i.connection_id = c.connection_id AND i.pipeline = p.value AND i.status NOT IN ('resolved', 'rejected', 'closed')) AS \"Open tickets\",\n  (SELECT count(*) FROM incidents i WHERE i.connection_id = c.connection_id AND i.pipeline = p.value) AS \"All tickets\",\n  c.platform AS \"platform_key\",\n  h.last_run_url AS \"run_url\"\nFROM connections c, json_each(c.pipelines_json) p\nLEFT JOIN pipeline_health h ON h.connection_id = c.connection_id AND h.pipeline = p.value\nWHERE c.enabled\nORDER BY h.last_state IN ('FAILED', 'FAILURE', 'UNSTABLE') DESC, \"Open tickets\" DESC, c.name, p.value",
+          "timeColumns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Platform"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Connection"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Application"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Tickets of this application",
+                    "url": "/d/copilot-incident-desk/incident-desk?var-platform=${__data.fields.platform_key}&var-app=${__data.fields.Application}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last run"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "SUCCESS": {
+                        "text": "succeeded",
+                        "color": "#00843D",
+                        "index": 0
+                      },
+                      "SUCCEEDED": {
+                        "text": "succeeded",
+                        "color": "#00843D",
+                        "index": 1
+                      },
+                      "FAILED": {
+                        "text": "failed",
+                        "color": "#D52B1E",
+                        "index": 2
+                      },
+                      "FAILURE": {
+                        "text": "failed",
+                        "color": "#D52B1E",
+                        "index": 3
+                      },
+                      "UNSTABLE": {
+                        "text": "unstable",
+                        "color": "#C27A00",
+                        "index": 4
+                      },
+                      "not polled yet": {
+                        "text": "not polled yet",
+                        "color": "#8C96A5",
+                        "index": 5
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Run"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the run",
+                    "url": "${__data.fields.run_url}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last run at (UTC)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Runs 24 h"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed 24 h"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "text",
+                      "value": null
+                    },
+                    {
+                      "color": "#D52B1E",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Open tickets"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "text",
+                      "value": null
+                    },
+                    {
+                      "color": "#C27A00",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "All tickets"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "platform_key"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "run_url"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Connections",
+      "description": "One row per platform account. Manage opens the console's form (edit, check now, pause, delete).",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 15,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT c.name AS \"Connection\",\n  CASE c.platform WHEN 'databricks' THEN 'Databricks' WHEN 'jenkins' THEN 'Jenkins' WHEN 'snowflake' THEN 'Snowflake' WHEN 'aws_glue' THEN 'AWS Glue' WHEN 'azure_data_factory' THEN 'Azure Data Factory' ELSE c.platform END AS \"Platform\",\n  CASE WHEN NOT c.enabled THEN 'off' WHEN c.last_check_ok IS NULL THEN 'not checked'\n       WHEN c.last_check_ok THEN 'connected' ELSE 'check failed' END AS \"Status\",\n  replace(substr(c.last_check_at, 1, 16), 'T', ' ') AS \"Last check (UTC)\",\n  coalesce(c.last_check_message, '') AS \"Result\",\n  json_array_length(c.pipelines_json) AS \"Applications\",\n  CASE WHEN c.auto_apply THEN 'on · after ' || c.auto_apply_min_successes || ' successes · '\n       || CASE WHEN c.auto_apply_cooldown_hours > 0 THEN c.auto_apply_cooldown_hours || ' h cooldown' ELSE 'no cooldown' END\n       ELSE 'off' END AS \"Auto-apply\",\n  CASE WHEN json_array_length(c.approvers_json) > 0\n       THEN (SELECT group_concat(a.value, ', ') FROM json_each(c.approvers_json) a) ELSE 'default recipients' END\n    AS \"Approvers\",\n  'Manage' AS \"Manage\",\n  c.connection_id AS \"connection_id\"\nFROM connections c ORDER BY c.created_at",
+          "queryText": "SELECT c.name AS \"Connection\",\n  CASE c.platform WHEN 'databricks' THEN 'Databricks' WHEN 'jenkins' THEN 'Jenkins' WHEN 'snowflake' THEN 'Snowflake' WHEN 'aws_glue' THEN 'AWS Glue' WHEN 'azure_data_factory' THEN 'Azure Data Factory' ELSE c.platform END AS \"Platform\",\n  CASE WHEN NOT c.enabled THEN 'off' WHEN c.last_check_ok IS NULL THEN 'not checked'\n       WHEN c.last_check_ok THEN 'connected' ELSE 'check failed' END AS \"Status\",\n  replace(substr(c.last_check_at, 1, 16), 'T', ' ') AS \"Last check (UTC)\",\n  coalesce(c.last_check_message, '') AS \"Result\",\n  json_array_length(c.pipelines_json) AS \"Applications\",\n  CASE WHEN c.auto_apply THEN 'on · after ' || c.auto_apply_min_successes || ' successes · '\n       || CASE WHEN c.auto_apply_cooldown_hours > 0 THEN c.auto_apply_cooldown_hours || ' h cooldown' ELSE 'no cooldown' END\n       ELSE 'off' END AS \"Auto-apply\",\n  CASE WHEN json_array_length(c.approvers_json) > 0\n       THEN (SELECT group_concat(a.value, ', ') FROM json_each(c.approvers_json) a) ELSE 'default recipients' END\n    AS \"Approvers\",\n  'Manage' AS \"Manage\",\n  c.connection_id AS \"connection_id\"\nFROM connections c ORDER BY c.created_at",
+          "timeColumns": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": true
+            },
+            "inspect": true
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Connection"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 270
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Platform"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "connected": {
+                        "text": "connected",
+                        "color": "#00843D",
+                        "index": 0
+                      },
+                      "check failed": {
+                        "text": "check failed",
+                        "color": "#D52B1E",
+                        "index": 1
+                      },
+                      "off": {
+                        "text": "off",
+                        "color": "#8C96A5",
+                        "index": 2
+                      },
+                      "not checked": {
+                        "text": "not checked",
+                        "color": "#1846C9",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last check (UTC)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Applications"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Auto-apply"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Result"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Manage"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Edit in the console",
+                    "url": "__APPROVAL_CONSOLE_URL__/connections/${__data.fields.connection_id}/edit",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "connection_id"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "bargauge",
+      "title": "Open tickets by application",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "copilot-sqlite"
+      },
+      "gridPos": {
+        "x": 15,
+        "y": 12,
+        "w": 9,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "copilot-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT CASE platform WHEN 'databricks' THEN 'Databricks' WHEN 'jenkins' THEN 'Jenkins' WHEN 'snowflake' THEN 'Snowflake' WHEN 'aws_glue' THEN 'AWS Glue' WHEN 'azure_data_factory' THEN 'Azure Data Factory' ELSE platform END || ' · ' || coalesce(pipeline, '?') AS application, count(*) AS tickets\nFROM incidents WHERE status NOT IN ('resolved', 'rejected', 'closed') GROUP BY application ORDER BY tickets DESC",
+          "queryText": "SELECT CASE platform WHEN 'databricks' THEN 'Databricks' WHEN 'jenkins' THEN 'Jenkins' WHEN 'snowflake' THEN 'Snowflake' WHEN 'aws_glue' THEN 'AWS Glue' WHEN 'azure_data_factory' THEN 'Azure Data Factory' ELSE platform END || ' · ' || coalesce(pipeline, '?') AS application, count(*) AS tickets\nFROM incidents WHERE status NOT IN ('resolved', 'rejected', 'closed') GROUP BY application ORDER BY tickets DESC",
+          "timeColumns": []
+        }
+      ],
+      "transformations": [
+        {
+          "id": "rowsToFields",
+          "options": {
+            "mappings": [
+              {
+                "fieldName": "application",
+                "handlerKey": "field.name"
+              },
+              {
+                "fieldName": "tickets",
+                "handlerKey": "field.value"
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "valueMode": "text",
+        "namePlacement": "top",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#C27A00"
+          },
+          "min": 0,
+          "decimals": 0,
+          "noValue": "no open tickets"
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

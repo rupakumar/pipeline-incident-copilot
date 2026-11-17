@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+data/
+evals/reports/
+
+# Databricks CLI bundle state
+.databricks/
+
+# local report builds (decks, PDFs) — not part of the copilot
+.reports/
