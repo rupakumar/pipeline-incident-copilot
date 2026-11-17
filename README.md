@@ -7,8 +7,9 @@ names the root cause, proposes a safe fix, and runs it **only after a person app
 verifies the rerun and learns from it. Everything runs locally (Ollama `qwen3:4b`); Claude is an
 optional tier.
 
-**New here? Follow [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**: install, settings, the Databricks
-pipeline, the console, dashboards and your first incident, step by step.
+## **👉 To get started, follow [GETTING_STARTED.md](GETTING_STARTED.md)**
+
+**Install, settings, the Databricks pipeline, the console, dashboards and your first incident, step by step.**
 
 ## How an incident flows
 
@@ -188,7 +189,7 @@ The pipeline-health dashboard (Databricks data) stays on Grafana Cloud: `python 
 
 ## Setup
 
-Full walkthrough with prerequisites, what to change and troubleshooting: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
+Full walkthrough with prerequisites, what to change and troubleshooting: **[GETTING_STARTED.md](GETTING_STARTED.md)**.
 
 ```bash
 python3.12 -m venv .venv && source .venv/bin/activate
